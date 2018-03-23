@@ -1,0 +1,35 @@
+FROM ruby:2.4.3-alpine3.7
+MAINTAINER therubymug
+
+RUN apk update && apk add abuild alpine-sdk autoconf automake bash binutils \
+binutils-doc bison build-base bzip2 bzip2-dev ca-certificates chromium \
+chromium-chromedriver coreutils curl docker gcc gcc-doc gdbm-dev git \
+glib-dev jq jq-dev less libc-dev libffi-dev libgcrypt libressl-dev \
+libxml2-dev libxslt libxslt-dev linux-headers make nasm ncurses ncurses-dev \
+netcat-openbsd nodejs openssh-client postgresql-client postgresql-dev procps \
+py-pip python python-dev readline-dev ruby tzdata vim yaml-dev zlib-dev \
+&& gem update --system
+
+RUN gem install bundler --conservative
+
+RUN npm i -g yarn
+
+RUN pip install --upgrade docker-compose==1.20.0
+
+ONBUILD ARG APP_NAME
+ONBUILD ARG ADDITIONAL_PACKAGES
+ONBUILD ARG ADDITIONAL_FILES
+ONBUILD ENV APP_HOME /${APP_NAME}
+ONBUILD RUN mkdir -p $APP_HOME/vendor
+ONBUILD RUN mkdir -p $APP_HOME/tmp/pids
+ONBUILD WORKDIR $APP_HOME
+ONBUILD RUN apk update && apk add $ADDITIONAL_PACKAGES
+
+ONBUILD ADD Gemfile* $APP_HOME/
+ONBUILD ADD $ADDITIONAL_FILES $APP_HOME/
+
+ONBUILD RUN bash -l -c 'bundle check || bundle install'
+
+ONBUILD ADD . $APP_HOME
+
+CMD bash
